@@ -1,0 +1,15 @@
+{
+  "name": "Right-click menu sample",
+  "description": "sample",
+  "version": "0.0.1",
+  "permissions": [
+    "http://*/*",
+    "https://*/*",
+    "contextMenus"
+],
+  "background": {
+    "persistent": false,
+    "scripts": ["fetch.js", "cash.min.js", "background.js"]
+  },
+  "manifest_version": 2
+}
