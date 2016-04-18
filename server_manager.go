@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 // sudo chmod  777 /mnt/data/
@@ -25,7 +28,14 @@ func set_globals() {
 
 func register_routes() {
 	http.HandleFunc("/api/", messageHandler)
-	fs := http.Dir("./static")
+
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(dir)
+	fs := http.Dir(dir + "/static")
 	fileHandler := http.FileServer(fs)
 	http.Handle("/", fileHandler)
 }
@@ -36,9 +46,22 @@ func start() {
 }
 
 func main() {
-	set_globals()
-	register_routes()
-	start()
+	replace_ment_map := TestLCS()
+	// fmt.Printf("%v", replace_ment_map)
+	for _, replacement_entry := range replace_ment_map {
+		new_name := "test/" + replacement_entry.New_str
+		old_name := "test/" + replacement_entry.Original
+		fmt.Printf("REnaming %s to %s\n", old_name, new_name)
+
+		err := os.Rename(old_name, new_name)
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+		}
+	}
+	// set_globals()
+	// register_routes()
+	// fixPermissions()
+	// start()
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,10 +96,13 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 // Does a very simple permissions fix by setting the group to
 // nobody and all the files to open.
 func fixPermissions() ([]byte, error) {
-	data_location := "/mnt/data/*"
+	fmt.Printf("Fixing Permissiosn")
+	data_location := "/mnt/data/"
 
 	permissions_cmd := exec.Command("chown", "-R", "nobody:nobody", data_location)
 	user_cmd := exec.Command("chmod", "-R", "777", data_location)
+	// user_cmd := exec.Command("ls", "/")
+	// user_cmd.Dir = "/"
 
 	runCommand(permissions_cmd)
 	runCommand(user_cmd)
