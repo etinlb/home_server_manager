@@ -1,10 +1,10 @@
 <!doctype html>
-<html ng-app>
+<html ng-app="server_manager">
     <head>
         <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" />
         <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.0/css/font-awesome.css" />
 
-        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.js"></script>
         <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-route.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 
@@ -14,39 +14,49 @@
     </head>
 
 <!-- Begin Body -->
-<body>
+<body ng-controller="mainController">
 <div class="container">
-    <h1>My JSON Web Page</h1>
-
-
-    <button class = "btn btn-primary" type="button" onclick="JSONTest()">Shut Down</button>
+    <h1>Server Manager</h1>
+    <button class = "btn btn-primary" type="button" onclick="turn_off()">Shut Down</button>
+    <button type="submit" class="btn btn-primary" onclick="fix_permissions()">Fix Perm</button>
 </dev>
 
-<script type="text/javascript">
-JSONTest = function() {
-    var resultDiv = $("#resultDivContainer");
-
-    $.ajax({
-        url: "http://localhost:17901/api/",
-        type: "POST",
-        data: JSON.stringify({ apiKey: "23462", action: "turn_off"}),
-        dataType: "json",
-        success: function (result) {
-            switch (result) {
-                case true:
-                    console.log(result)
-                    processResponse(result);
-                    break;
-                default:
-                    resultDiv.html(result);
+<script>
+    send_command = function(cmd)
+    {
+        $.ajax({
+            url: "/api/",
+            type: "POST",
+            data: JSON.stringify({ apiKey: "23462", action: cmd}),
+            dataType: "json",
+            success: function (result) {
+                switch (result) {
+                    case true:
+                        console.log(result)
+                        processResponse(result);
+                        break;
+                    default:
+                        console.log(result);
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+            // alert(xhr.status);
+            // alert(thrownError);
             }
-        },
-        error: function (xhr, ajaxOptions, thrownError) {
-        // alert(xhr.status);
-        // alert(thrownError);
-        }
-    });
-};
+        });
+    }
+
+    turn_off = function()
+    {
+        send_command("turn_off")
+    }
+
+    fix_permissions = function()
+    {
+        console.log("Sending");
+        send_command("fix_all_permissions")
+        console.log("Sent");
+    }
 </script>
 </body>
 <!-- End Body -->
