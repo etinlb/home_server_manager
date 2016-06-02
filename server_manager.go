@@ -146,6 +146,10 @@ func doMessage(message Message) ([]byte, error) {
 		dir := getDirFromRenameMessage(message)
 		fmt.Printf("Renaming %+v\n", dir)
 		renameTorrentDir(dir)
+	} else if message.Action == "list_dir" {
+		dir := getDirFromRenameMessage(message)
+		dir_list := getDirContents(dir)
+		response.Args, _ = json.Marshal(&dir_list)
 	}
 
 	sent_message, _ := json.Marshal(&response)
