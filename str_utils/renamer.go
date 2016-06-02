@@ -1,15 +1,13 @@
-package main
+/**
+ *
+ */
+package strutils
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
-	// "os"
-	// "sort"
 )
 
 type ReplacementEntry struct {
@@ -42,6 +40,7 @@ func distance_matrix(arr1, arr2 []string) [][]int {
 // TODO: MAke this not garbage
 func order_by_distance(arr1, arr2 []string) ([]string, []string) {
 	var smallerArr, biggerArr []string
+	var closest, closestIdx int
 
 	if len(arr1) <= len(arr2) {
 		smallerArr = arr1
@@ -57,12 +56,10 @@ func order_by_distance(arr1, arr2 []string) ([]string, []string) {
 
 	distance_mat := distance_matrix(smallerArr, biggerArr)
 
-	fmt.Println(distance_mat)
-	var closest, closestIdx int
-
 	for idx1, str1 := range smallerArr {
 		closest = distance_mat[idx1][0]
 		closestIdx = 0
+
 		for idx2, _ := range biggerArr {
 			if distance_mat[idx1][idx2] <= closest {
 				closest = distance_mat[idx1][idx2]
@@ -79,14 +76,9 @@ func order_by_distance(arr1, arr2 []string) ([]string, []string) {
 
 func normalize_comparision(arr1, arr2 []string) []string {
 	orderedArr1, orderedArr2 := order_by_distance(arr1, arr2)
-	fmt.Printf("Arr1 = %+v\n Arr2 = %+v", orderedArr1, orderedArr2)
 	normlized_arr := make([]string, 0, len(orderedArr1))
 
 	var tmp_arr []string
-	// if len(arr1) != len(arr2) {
-	// 	fmt.Printf("Not supported yet")
-	// 	return normlized_arr
-	// }
 
 	for idx, str1 := range orderedArr1 {
 		str2 := orderedArr2[idx]
@@ -94,7 +86,7 @@ func normalize_comparision(arr1, arr2 []string) []string {
 			normlized_arr = append(normlized_arr, str1)
 			continue
 		}
-		tmp_arr = FindAllSubstrings(str1, str2, 5)
+		tmp_arr = FindAllSubstrings(str1, str2, 3)
 		if len(tmp_arr) != 1 {
 			fmt.Printf("Something is wrong %+v", tmp_arr)
 			continue
@@ -106,25 +98,22 @@ func normalize_comparision(arr1, arr2 []string) []string {
 	return normlized_arr
 }
 
-func SampleSubstrings(dirty_strings []string) []string {
+// Give an array of strings, it will return an array with all the common
+// sub strings removed. The way it determines what sub strings are common
+// in all strings is by sampling a percentage of the array first. A sample rate
+// of 1 use the entire array and ensure what ever is removed was present in
+// all strings.
+func GetCommonSubstrings(dirty_strings []string, sample_rate float32) []string {
 	var sub_strs, comp_sub_strs []string
 
-	// common_sub_strings := make([]string, 0, len(dirty_strings))
+	// Use the first to elements in array to sample.
+	comp_sub_strs = FindAllSubstrings(dirty_strings[0], dirty_strings[1], 3)
 
-	comp_sub_strs = FindAllSubstrings(dirty_strings[0], dirty_strings[1], 10)
-
-	fmt.Printf("%+v", comp_sub_strs)
+	num_of_samples := int(sample_rate * float32(len(dirty_strings)))
 
 	idx_offset := 2
-	for idx, _ := range dirty_strings[idx_offset:] {
-		fmt.Printf("INdexing %d\n", idx)
+	for idx := idx_offset; idx < num_of_samples; idx++ {
 		sub_strs = FindAllSubstrings(dirty_strings[idx+idx_offset-1], dirty_strings[idx+idx_offset], 10)
-		fmt.Printf("Using %+v | %+v\n", dirty_strings[idx+idx_offset-1], dirty_strings[idx+idx_offset])
-		fmt.Printf("Strs\n")
-		fmt.Printf("%+v\n", comp_sub_strs)
-		fmt.Printf("%+v\n", sub_strs)
-		fmt.Printf("======\n")
-
 		comp_sub_strs = normalize_comparision(sub_strs, comp_sub_strs)
 	}
 
@@ -163,6 +152,7 @@ func FindAllSubstrings(s1 string, s2 string, threshold int) []string {
 	}
 
 	sub_strings_as_arr := string_map_to_arr(sub_strings)
+
 	return sub_strings_as_arr
 }
 
@@ -177,7 +167,7 @@ func string_map_to_arr(string_map map[string]string) []string {
 }
 
 // Removes any string from the given map
-func RemoveSubStrings(str_arr []string, common_sub_strs []string, threshold int) []string {
+func RemoveSubStrings(str_arr []string, common_sub_strs []string) []string {
 	var new_strs = make([]string, len(str_arr))
 	var new_str string
 
@@ -194,15 +184,15 @@ func RemoveSubStrings(str_arr []string, common_sub_strs []string, threshold int)
 	return new_strs
 }
 
-func RemoveStringMatch(strings []string, match_to_remove *regexp.Regexp) []string {
+func RemoveStringMatch(strings []string, match_to_remove *regexp.Regexp) ([]string, []string) {
 	var new_strs = make([]string, len(strings))
+	var removed_strs = make([]string, len(strings))
 	var start, end int
 	var str_index []int
 	var new_str string
 
 	for idx, str := range strings {
 		str_index = match_to_remove.FindStringIndex(str)
-		fmt.Printf("\nRemoving %s match %+v\n", str, str_index)
 		if len(str_index) < 2 {
 			continue
 		}
@@ -210,51 +200,42 @@ func RemoveStringMatch(strings []string, match_to_remove *regexp.Regexp) []strin
 
 		new_str = str[:start] + str[end:] // slice out the match
 		new_strs[idx] = new_str
+		removed_strs[idx] = str[start:end]
 	}
 
-	return new_strs
+	return new_strs, removed_strs
 }
 
-func getDirContents(dir string) []string {
-	files, err := ioutil.ReadDir(dir)
-	var file_names = make([]string, len(files))
-	if err != nil {
-		log.Fatal(err)
-	}
+func RemoveCommonSubstrings(originalStrs []string, sampleRate float32) []ReplacementEntry {
+	var replacements = make([]ReplacementEntry, len(originalStrs))
 
-	for idx, file := range files {
-		file_names[idx] = file.Name()
-	}
+	common_sub_strs := GetCommonSubstrings(originalStrs, sampleRate)
+	new_strings := RemoveSubStrings(originalStrs, common_sub_strs)
 
-	return file_names
-}
-
-func TestLCS() []ReplacementEntry {
-	// episodes := []string{
-	// 	"Community.S02E01.Anthropology.101.720p.WEB-DL.x264-LeRalouf.mkv",
-	// 	"Community.S02E02.Accounting.For.Lawyers.720p.WEB-DL.x264-LeRalouf.mkv",
-	// }
-
-	episodes := getDirContents("test")
-	fmt.Printf("%v\n", episodes)
-	var replacements = make([]ReplacementEntry, len(episodes))
-
-	re := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
-	cleaned_strs := RemoveStringMatch(episodes, re)
-
-	// common_sub_strs := FindAllSubstrings(cleaned_strs[0], cleaned_strs[1], 4)
-	common_sub_strs := SampleSubstrings(cleaned_strs)
-
-	// FindAllSubstrings(cleaned_strs[0], cleaned_strs[1], 4)
-
-	new_strings := RemoveSubStrings(cleaned_strs, common_sub_strs, 3)
-	for idx, episode := range episodes {
-		replacements[idx].Original = episode
+	for idx, orig := range originalStrs {
+		replacements[idx].Original = orig
 		replacements[idx].New_str = new_strings[idx]
 	}
 
-	fmt.Printf("%+v\n", replacements)
-	replace_map_str, _ := json.Marshal(&replacements)
-	fmt.Printf("%s\n", replace_map_str)
+	return replacements
+}
+
+func RemoveCommonSubstringsPreseveMatch(
+	originalStrs []string,
+	sampleRate float32,
+	preserveMatch *regexp.Regexp,
+) []ReplacementEntry {
+
+	var replacements = make([]ReplacementEntry, len(originalStrs))
+
+	cleaned_strs, removed_strs := RemoveStringMatch(originalStrs, preserveMatch)
+	common_sub_strs := GetCommonSubstrings(cleaned_strs, sampleRate)
+	new_strings := RemoveSubStrings(cleaned_strs, common_sub_strs)
+
+	for idx, orig := range originalStrs {
+		replacements[idx].Original = orig
+		replacements[idx].New_str = removed_strs[idx] + " " + new_strings[idx]
+	}
+
 	return replacements
 }
