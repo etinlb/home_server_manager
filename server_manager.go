@@ -4,11 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
+	// "log"
+	"github.com/etinlb/strutils"
+	"regexp"
 )
 
 // sudo chmod  777 /mnt/data/
@@ -16,6 +22,10 @@ import (
 type Message struct {
 	Action string
 	Args   json.RawMessage
+}
+
+type renameMessage struct {
+	Dir string
 }
 
 var port string
@@ -46,22 +56,10 @@ func start() {
 }
 
 func main() {
-	replace_ment_map := TestLCS()
-	// fmt.Printf("%v", replace_ment_map)
-	for _, replacement_entry := range replace_ment_map {
-		new_name := "test/" + replacement_entry.New_str
-		old_name := "test/" + replacement_entry.Original
-		fmt.Printf("REnaming %s to %s\n", old_name, new_name)
-
-		err := os.Rename(old_name, new_name)
-		if err != nil {
-			fmt.Printf("%s\n", err.Error())
-		}
-	}
-	// set_globals()
-	// register_routes()
-	// fixPermissions()
-	// start()
+	set_globals()
+	register_routes()
+	fixPermissions()
+	start()
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +88,6 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	// send response
 	fmt.Printf("Sending: %s\n", response_message)
 	w.Write(response_message)
-	// http.ServeFile(w, r, )
 }
 
 // Does a very simple permissions fix by setting the group to
@@ -130,17 +127,100 @@ func doMessage(message Message) ([]byte, error) {
 	response.Action = "resp"
 
 	if message.Action == "turn_off" {
-		cmd := exec.Command("shutdown", "-h", "now")
-		runCommand(cmd)
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			cmd := exec.Command("shutdown", "-h", "now")
+			runCommand(cmd)
+		}()
 	} else if message.Action == "fix_all_permissions" {
 		fixPermissions()
-	}
+	} else if message.Action == "test_rename" {
+		dir := getDirFromRenameMessage(message)
+		replacementMap := getReplaceMentMap(dir)
 
-	response.Args, _ = json.Marshal("hello")
+		response.Args, _ = json.Marshal(&replacementMap)
+
+		fmt.Printf("Test Renaming %s\n", response)
+
+	} else if message.Action == "rename" {
+		dir := getDirFromRenameMessage(message)
+		fmt.Printf("Renaming %+v\n", dir)
+		renameTorrentDir(dir)
+	}
 
 	sent_message, _ := json.Marshal(&response)
 
+	fmt.Printf("Responding with  %+v\n", response)
 	return sent_message, nil
+}
+
+func getDirContents(dir string) []string {
+	log.Printf("Looking at %+v", dir)
+	files, err := ioutil.ReadDir(dir)
+	var file_names = make([]string, len(files))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for idx, file := range files {
+		file_names[idx] = file.Name()
+	}
+	log.Printf("File names%+v", file_names)
+	return file_names
+}
+
+func getDirFromRenameMessage(message Message) string {
+	renameDirMessage := makeRenameMessage(message)
+	fmt.Printf("Dir message %+v\n", renameDirMessage)
+	return renameDirMessage.Dir
+}
+
+func makeRenameMessage(message Message) renameMessage {
+	var renameMessage renameMessage
+
+	err := json.Unmarshal(message.Args, &renameMessage)
+	if err != nil {
+		fmt.Printf("Something went wrong %+v\n", message)
+		fmt.Printf("Args %+s\n", message.Args)
+	}
+
+	return renameMessage
+}
+
+func getReplaceMentMap(dir string) []strutils.ReplacementEntry {
+	episodes := getDirContents(dir)
+	episodeRegex := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
+
+	replace_ment_map := strutils.RemoveCommonSubstringsPreseveMatch(episodes, 0.8, episodeRegex)
+
+	// Doesn't remove periods within the titles, so take them out
+	for idx, entry := range replace_ment_map {
+		numOfPeriods := strings.Count(entry.New_str, ".")
+
+		// Remove all periods but the last one on the extension
+		replace_ment_map[idx].New_str = strings.Replace(entry.New_str, ".", " ", numOfPeriods-1)
+	}
+
+	return replace_ment_map
+}
+
+func renameTorrentDir(dir string) []byte {
+	replace_ment_map := getReplaceMentMap(dir)
+
+	for _, replacement_entry := range replace_ment_map {
+		new_name := dir + "/" + replacement_entry.New_str
+		old_name := dir + "/" + replacement_entry.Original
+		fmt.Printf("REnaming %s to %s\n", old_name, new_name)
+
+		err := os.Rename(old_name, new_name)
+		if err != nil {
+			fmt.Printf("%s\n", err.Error())
+		}
+	}
+
+	replace_map_str, _ := json.Marshal(&replace_ment_map)
+
+	return replace_map_str
 }
 
 /*- script.js             <!-- stores all our angular code -->
