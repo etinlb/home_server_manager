@@ -19,6 +19,21 @@
     <h1>Server Manager</h1>
     <button class = "btn btn-primary" type="button" onclick="turn_off()">Shut Down</button>
     <button type="submit" class="btn btn-primary" onclick="fix_permissions()">Fix Perm</button>
+    <button type="submit" class="btn btn-primary" ng-click="get_dir()">Test Get Files</button>
+    <div>
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>Files</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="file in files">
+                    <td>{{ file }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </dev>
 
 <script>

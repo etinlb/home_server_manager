@@ -4,19 +4,23 @@ var server_manager = angular.module('server_manager', []).controller("mainContro
 function mainController($scope, $http) {
     // when landing on the page, get all torrents and show them? Naw....
     // TODO: SHould be a get with the url as parameter
-    $http({
+
+    generic_fail_funciton = function(data, status, headers, config) {
+        $scope.status = status + ' ' + headers;
+    }
+
+    send_server_command = function(data, success_funciton, fail_function) {
+        fail_function = fail_function || generic_fail_funciton;
+        $http({
             url: '/api/cmd',
             method: "POST",
-            data: JSON.stringify( {"action" : "list_dir", "args":{ "dir" : "/Users/erikparreira/Dropbox/Programming/home_server_manager/test_data"}}),
+            data: JSON.stringify(data),
             headers: {'Content-Type': 'application/json'}
-        }).success(function (data, status, headers, config) {
-            console.log("DONE!");
-            console.log(data);
-        }).error(function (data, status, headers, config) {
-            $scope.status = status + ' ' + headers;
-        });
+        }).success(success_funciton)
+          .error(fail_function);
+    }
 
-     $scope.fix_permissions = function() {
+    $scope.fix_permissions = function() {
         $http({
             url: '/api/cmd',
             method: "POST",
@@ -30,17 +34,15 @@ function mainController($scope, $http) {
     }
 
     $scope.get_dir = function() {
-        $http({
-            url: '/api/cmd',
-            method: "POST",
-            data: JSON.stringify({action:"fix_all_permissions"}),
-            headers: {'Content-Type': 'application/json'}
-        }).success(function (data, status, headers, config) {
-            console.log("DONE!")
-        }).error(function (data, status, headers, config) {
-            $scope.status = status + ' ' + headers;
+        data = {"action" : "list_dir", "args":{ "dir" : "/Users/erikparreira/Dropbox/Programming/home_server_manager/test_data"}};
+        send_server_command(data, function(data, status, headers, config) {
+            console.log("DONE!");
+            console.log(data);
+            $scope.files = data.Args;
         });
     }
+
+    $scope.files = ["hello"];
 
 }
 

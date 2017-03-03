@@ -2,3 +2,5 @@ home_server_manager
 debug
 
 test_data/*
+.vagrant/*
+.vscode/*
