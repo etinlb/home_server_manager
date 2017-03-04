@@ -5,9 +5,11 @@ package strutils
 
 import (
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ReplacementEntry struct {
@@ -33,6 +35,11 @@ func distance_matrix(arr1, arr2 []string) [][]int {
 	}
 
 	return distance_mat
+}
+
+func random(min, max int) int {
+	rand.Seed(time.Now().Unix())
+	return rand.Intn(max-min) + min
 }
 
 // Gets the distance for each array then organizes the returned array into
@@ -74,6 +81,7 @@ func order_by_distance(arr1, arr2 []string) ([]string, []string) {
 	return orderedArr1, orderedArr2
 }
 
+// Given two arrays of strings,
 func normalize_comparision(arr1, arr2 []string) []string {
 	orderedArr1, orderedArr2 := order_by_distance(arr1, arr2)
 	normlized_arr := make([]string, 0, len(orderedArr1))
@@ -102,7 +110,8 @@ func normalize_comparision(arr1, arr2 []string) []string {
 // sub strings removed. The way it determines what sub strings are common
 // in all strings is by sampling a percentage of the array first. A sample rate
 // of 1 use the entire array and ensure what ever is removed was present in
-// all strings.
+// all strings.0
+// TODO: Use actual sampling techniques, not just sequential the amount of samples
 func GetCommonSubstrings(dirty_strings []string, sample_rate float32) []string {
 	var sub_strs, comp_sub_strs []string
 
@@ -121,8 +130,9 @@ func GetCommonSubstrings(dirty_strings []string, sample_rate float32) []string {
 }
 
 // Returns all common sequential substrings
-// Based on
+// Based on algorithm for finding the longest substring.
 // https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Longest_common_substring#Go
+// Modified to to find all common substrings longer than threshold
 func FindAllSubstrings(s1 string, s2 string, threshold int) []string {
 	var similarity_matrix = make([][]int, 1+len(s1))
 	var sub_strings = map[string]string{}
@@ -138,10 +148,12 @@ func FindAllSubstrings(s1 string, s2 string, threshold int) []string {
 		for y := 1; y < 1+len(s2); y++ {
 			if s1[x-1] == s2[y-1] {
 				similarity_matrix[x][y] = similarity_matrix[x-1][y-1] + 1
+
 				if similarity_matrix[x][y] >= threshold {
 					key = strconv.Itoa(x) + "," + strconv.Itoa(y)
 					prev_key = strconv.Itoa(x-1) + "," + strconv.Itoa(y-1)
 
+					// Delete the previous sized string if it exists
 					delete(sub_strings, prev_key)
 					sub_strings[key] = s1[x-similarity_matrix[x][y] : x]
 				}
