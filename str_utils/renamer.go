@@ -5,6 +5,7 @@ package strutils
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -238,4 +239,28 @@ func RemoveCommonSubstringsPreseveMatch(
 	}
 
 	return replacements
+}
+
+// Cleans the output of any of the above Remove* functions. Removes any "." and
+// replaces it with a " " (space)  and also re-adds the extension if the
+// original had an extension.
+func CleanStrings(replacements []ReplacementEntry) {
+	for _, entry := range replacements {
+		entry.CleanNewStr()
+		fmt.Printf("is now %s ......\n", entry.New_str)
+	}
+}
+
+func (r *ReplacementEntry) CleanNewStr() {
+
+	ext := filepath.Ext(r.Original)
+
+	// Trim the extension if it is on the new string
+	stripped_ext := strings.TrimSuffix(r.New_str, filepath.Ext(ext))
+
+	trimmed := strings.Replace(stripped_ext, ".", " ", -1)
+	final := trimmed + ext
+	fmt.Printf("Change %s to %s\n", r.New_str, final)
+	r.New_str = final
+
 }

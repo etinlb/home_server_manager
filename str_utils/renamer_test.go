@@ -3,7 +3,7 @@ package strutils
 import (
 	// "path/filepath"
 	"regexp"
-	"strings"
+	// "strings"
 	"testing"
 )
 
@@ -100,14 +100,16 @@ func TestFindCommonSubStrsPreserveMatch(t *testing.T) {
 	re := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
 	stripedStrs := RemoveCommonSubstringsPreseveMatch(episodes, 0.5, re)
 
+	CleanStrings(stripedStrs[0:])
+
 	for index, correct_str := range expectedOutput {
 		// index is the index where we are
 		// extension := filepath.Ext(stripedStrs[index].New_str)
 		// name := strings.TrimSuffix(stripedStrs[index].New_str, extension))
-		clean := strings.Replace(stripedStrs[index].New_str, ".", " ", strings.Count(stripedStrs[index].New_str, ".")-1)
+		// clean := strings.Replace(stripedStrs[index].New_str, ".", " ", strings.Count(stripedStrs[index].New_str, ".")-1)
 
 		if correct_str != stripedStrs[index].New_str {
-			t.Errorf("%s didn't match %s", clean, correct_str)
+			t.Errorf("%s didn't match %s", stripedStrs[index].New_str, correct_str)
 		}
 	}
 
