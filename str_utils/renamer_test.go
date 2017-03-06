@@ -97,6 +97,9 @@ func TestFindCommonSubStrsPreserveMatch(t *testing.T) {
 	var episodes = getSharedStructures().typicalNames
 	var expectedOutput = getSharedStructures().typicalNamesPreserved
 
+	// A better regex would include the file extention like so (S\d{1,2})(E\d{2})(.*)(\.mkv)
+	// but what happens with the third match? The algorithm on the backend would
+	// have to be changed
 	re := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
 	stripedStrs := RemoveCommonSubstringsPreseveMatch(episodes, 0.5, re)
 
