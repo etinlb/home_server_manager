@@ -84,7 +84,12 @@ export PATH="$GOPATH/bin:$PATH"' >> /home/vagrant/.bashrc
 
     mkdir /home/vagrant/gopath
     mkdir -p /home/vagrant/gopath/src/github.com/etinlb/
-    ln -s /vagrant/str_utils/ /home/vagrant/gopath/src/github.com/etinlb/strutils
+    ln -s /vagrant/strutils/ /home/vagrant/gopath/src/github.com/etinlb/strutils
 
+    mkdir /mnt/data
+    chown vagrant:vagrant /mnt/data
   SHELL
+
+  # configure data dir as none privileged user
+  config.vm.provision "shell", args: "/mnt/data", path: "setup_test_data_dir.sh", privileged: false
 end
