@@ -20,6 +20,7 @@
     <button class = "btn btn-primary" type="button" onclick="turn_off()">Shut Down</button>
     <button type="submit" class="btn btn-primary" onclick="fix_permissions()">Fix Perm</button>
     <button type="submit" class="btn btn-primary" ng-click="get_dir()">Test Get Files</button>
+    <button type="submit" class="btn btn-primary" ng-click="rename_dir()">Rename Dir</button>
     <div>
         <table class="table table-hover table-bordered">
             <thead>
@@ -28,6 +29,9 @@
                 </tr>
             </thead>
             <tbody>
+                <tr ng-repeat="dir in dirs">
+                    <td ng-click="get_dir(dir)">{{ dir }}</td>
+                </tr>
                 <tr ng-repeat="file in files">
                     <td>{{ file }}</td>
                 </tr>
@@ -72,6 +76,8 @@
         send_command("fix_all_permissions")
         console.log("Sent");
     }
+
+
 </script>
 </body>
 <!-- End Body -->

@@ -24,6 +24,11 @@ type Message struct {
 	Args   json.RawMessage
 }
 
+type DirectoryContentsMessage struct {
+	Files []string `json:"files"`
+	Dirs  []string `json:"dirs"`
+}
+
 type renameMessage struct {
 	Dir string
 }
@@ -86,7 +91,6 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send response
-	fmt.Printf("Sending: %s\n", response_message)
 	w.Write(response_message)
 }
 
@@ -126,56 +130,69 @@ func doMessage(message Message) ([]byte, error) {
 	response := &Message{}
 	response.Action = "resp"
 
-	if message.Action == "turn_off" {
+	switch message.Action {
+	case "turn_off":
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			cmd := exec.Command("shutdown", "-h", "now")
 			runCommand(cmd)
 		}()
-	} else if message.Action == "fix_all_permissions" {
+		break
+	case "fix_all_permissions":
 		fixPermissions()
-	} else if message.Action == "test_rename" {
+		break
+	case "test_rename":
 		dir := getDirFromRenameMessage(message)
 		replacementMap := getReplaceMentMap(dir)
-
 		response.Args, _ = json.Marshal(&replacementMap)
-
-		fmt.Printf("Test Renaming %s\n", response)
-
-	} else if message.Action == "rename" {
+		break
+	case "rename":
 		dir := getDirFromRenameMessage(message)
-		fmt.Printf("Renaming %+v\n", dir)
 		renameTorrentDir(dir)
-	} else if message.Action == "list_dir" {
+		subDirs, files := getDirContents(dir)
+		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
+		response.Args, _ = json.Marshal(&dirList)
+		break
+	case "list_dir":
 		dir := getDirFromRenameMessage(message)
-		dir_list := getDirContents(dir)
-		response.Args, _ = json.Marshal(&dir_list)
+		subDirs, files := getDirContents(dir)
+		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
+		response.Args, _ = json.Marshal(&dirList)
+		break
 	}
 
 	sent_message, _ := json.Marshal(&response)
 
-	fmt.Printf("Responding with  %+v\n", response)
+	// fmt.Printf("Responding with  %+v\n", response)
 	return sent_message, nil
 }
 
-func getDirContents(dir string) []string {
+func getDirContents(dir string) ([]string, []string) {
 	log.Printf("Looking at %+v", dir)
 	files, err := ioutil.ReadDir(dir)
-	var file_names = make([]string, len(files))
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for idx, file := range files {
-		file_names[idx] = file.Name()
+	var file_names = make([]string, 0)
+	var dir_names = make([]string, 0)
+
+	for _, file := range files {
+		if file.IsDir() {
+			dir_names = append(dir_names, file.Name())
+		} else {
+			file_names = append(file_names, file.Name())
+		}
 	}
+
 	log.Printf("File names%+v", file_names)
-	return file_names
+	return dir_names, file_names
 }
 
 func getDirFromRenameMessage(message Message) string {
 	renameDirMessage := makeRenameMessage(message)
-	fmt.Printf("Dir message %+v\n", renameDirMessage)
+	// fmt.Printf("Dir message %+v\n", renameDirMessage)
 	return renameDirMessage.Dir
 }
 
@@ -192,10 +209,11 @@ func makeRenameMessage(message Message) renameMessage {
 }
 
 func getReplaceMentMap(dir string) []strutils.ReplacementEntry {
-	episodes := getDirContents(dir)
+	_, episodeFiles := getDirContents(dir)
 	episodeRegex := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
 
-	replace_ment_map := strutils.RemoveCommonSubstringsPreseveMatch(episodes, 0.8, episodeRegex)
+	replace_ment_map := strutils.RemoveCommonSubstringsPreseveMatch(episodeFiles, 0.8, episodeRegex)
+	strutils.CleanStrings(replace_ment_map)
 
 	// Doesn't remove periods within the titles, so take them out
 	for idx, entry := range replace_ment_map {
@@ -208,7 +226,7 @@ func getReplaceMentMap(dir string) []strutils.ReplacementEntry {
 	return replace_ment_map
 }
 
-func renameTorrentDir(dir string) []byte {
+func renameTorrentDir(dir string) []strutils.ReplacementEntry {
 	replace_ment_map := getReplaceMentMap(dir)
 
 	for _, replacement_entry := range replace_ment_map {
@@ -222,9 +240,7 @@ func renameTorrentDir(dir string) []byte {
 		}
 	}
 
-	replace_map_str, _ := json.Marshal(&replace_ment_map)
-
-	return replace_map_str
+	return replace_ment_map
 }
 
 /*- script.js             <!-- stores all our angular code -->

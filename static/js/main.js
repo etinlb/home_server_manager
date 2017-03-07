@@ -33,17 +33,30 @@ function mainController($scope, $http) {
         });
     }
 
-    $scope.get_dir = function() {
-        data = {"action" : "list_dir", "args":{ "dir" : "/Users/erikparreira/Dropbox/Programming/home_server_manager/test_data"}};
+    $scope.get_dir = function(dir_name) {
+        var full_path = $scope.current_directory + "/" + dir_name;
+
+        data = {"action" : "list_dir", "args":{ "dir" : full_path}};
         send_server_command(data, function(data, status, headers, config) {
             console.log("DONE!");
             console.log(data);
-            $scope.files = data.Args;
+
+            $scope.current_directory = full_path;
+            $scope.files = data.Args.files;
+            $scope.dirs = data.Args.dirs;
         });
     }
 
-    $scope.files = ["hello"];
+    $scope.rename_dir = function() {
+        data = {"action" : "rename", "args":{ "dir" : $scope.current_directory}};
+        send_server_command(data, function(data, status, headers, config) {
+            console.log(data);
+            $scope.get_dir(".");
+        });
+    }
 
+    $scope.current_directory = "/mnt/data";
+    $scope.get_dir(".");
 }
 
 server_manager.controller("mainController", mainController);
