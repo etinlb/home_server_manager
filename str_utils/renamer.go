@@ -112,7 +112,7 @@ func normalize_comparision(arr1, arr2 []string) []string {
 // in all strings is by sampling a percentage of the array first. A sample rate
 // of 1 use the entire array and ensure what ever is removed was present in
 // all strings.0
-// TODO: Use actual sampling techniques, not just sequential the amount of samples
+// TODO: Use actual sampling techniques
 func GetCommonSubstrings(dirty_strings []string, sample_rate float32) []string {
 	var sub_strs, comp_sub_strs []string
 
@@ -257,13 +257,12 @@ func RemoveCommonSubstringsPreseveMatch(
 // replaces it with a " " (space)  and also re-adds the extension if the
 // original had an extension.
 func CleanStrings(replacements []ReplacementEntry) {
-	for _, entry := range replacements {
-		entry.CleanNewStr()
-		fmt.Printf("is now %s ......\n", entry.New_str)
+	for i, _ := range replacements {
+		replacements[i].CleanNewStr()
 	}
 }
 
-func (r *ReplacementEntry) CleanNewStr() {
+func (r *ReplacementEntry) CleanNewStr() *ReplacementEntry {
 
 	ext := filepath.Ext(r.Original)
 
@@ -272,7 +271,7 @@ func (r *ReplacementEntry) CleanNewStr() {
 
 	trimmed := strings.Replace(stripped_ext, ".", " ", -1)
 	final := trimmed + ext
-	fmt.Printf("Change %s to %s\n", r.New_str, final)
 	r.New_str = final
 
+	return r
 }

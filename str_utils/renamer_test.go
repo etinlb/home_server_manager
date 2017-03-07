@@ -4,11 +4,13 @@ import (
 	// "path/filepath"
 	"regexp"
 	// "strings"
+	"fmt"
 	"testing"
 )
 
 type TestFixture struct {
 	typicalNames          []string
+	cleanStrings          []string
 	typicalNamesPreserved []string
 	randomSimilarStrs1    []string
 	randomSimilarStrs2    []string
@@ -42,15 +44,42 @@ func getSharedStructures() TestFixture {
 			"Community.S02E23.A.Fistful.Of.Paintballs.Part.1.720p.WEB-DL.x264-LeRalouf.mkv",
 			"Community.S02E24.For.A.Few.Paintballs.More.Part.2.720p.WEB-DL.x264-LeRalouf.mkv",
 		},
+
 		typicalNamesPreserved: []string{
+			"S02E01 Anthropology.101",
+			"S02E02 Accounting.For.Lawyers",
+			"S02E03 The.Psychology.Of.Letting.Go",
+			"S02E04 Basic.Rocket.Science",
+			"S02E05 Messianic.Myths.And.Ancient.Peoples",
+			"S02E06 Epidemiology",
+			"S02E07 Aerodynamics.Of.Gender",
+			"S02E08 Cooperative.Calligraphy",
+			"S02E09 Conspiracy.Theories.And.Interior.Design",
+			"S02E10 Mixology.Certification",
+			"S02E11 Abeds.Uncontrollable.Christmas",
+			"S02E12 Asian.Population.Studies",
+			"S02E13 Celebrity.Pharmacology",
+			"S02E14 Advanced.Dungeons.And.Dragons",
+			"S02E15 Early.21st.Century.Romanticism",
+			"S02E16 Intermediate.Documentary.Filmmaking",
+			"S02E17 Intro.To.Political.Science",
+			"S02E18 Custody.Law.And.Eastern.European.Diplomacy",
+			"S02E19 Critical.Film.Studies",
+			"S02E20 Competitive.Wine.Tasting",
+			"S02E21 Paradigms.Of.Human.Memory",
+			"S02E22 Applied.Anthropology.And.Culinary.Arts",
+			"S02E23 A.Fistful.Of.Paintballs.Part.1",
+			"S02E24 For.A.Few.Paintballs.More.Part.2",
+		},
+		cleanStrings: []string{
 			"S02E01 Anthropology 101.mkv",
 			"S02E02 Accounting For Lawyers.mkv",
 			"S02E03 The Psychology Of Letting Go.mkv",
-			"S02E04 Basic Rocketr Science.mkv",
+			"S02E04 Basic Rocket Science.mkv",
 			"S02E05 Messianic Myths And Ancient Peoples.mkv",
 			"S02E06 Epidemiology.mkv",
 			"S02E07 Aerodynamics Of Gender.mkv",
-			"S02E08 Cooperative Calligraphy mkv",
+			"S02E08 Cooperative Calligraphy.mkv",
 			"S02E09 Conspiracy Theories And Interior Design.mkv",
 			"S02E10 Mixology Certification.mkv",
 			"S02E11 Abeds Uncontrollable Christmas.mkv",
@@ -103,20 +132,21 @@ func TestFindCommonSubStrsPreserveMatch(t *testing.T) {
 	re := regexp.MustCompile("(S?\\d{1,2})(E?\\d{2})")
 	stripedStrs := RemoveCommonSubstringsPreseveMatch(episodes, 0.5, re)
 
-	CleanStrings(stripedStrs[0:])
-
 	for index, correct_str := range expectedOutput {
-		// index is the index where we are
-		// extension := filepath.Ext(stripedStrs[index].New_str)
-		// name := strings.TrimSuffix(stripedStrs[index].New_str, extension))
-		// clean := strings.Replace(stripedStrs[index].New_str, ".", " ", strings.Count(stripedStrs[index].New_str, ".")-1)
-
 		if correct_str != stripedStrs[index].New_str {
 			t.Errorf("%s didn't match %s", stripedStrs[index].New_str, correct_str)
 		}
 	}
 
-	if stripedStrs[0].New_str != "Anthropology.101" {
-		t.Errorf("%s didn't match %s", stripedStrs[0].New_str, "Anthropology.101")
+	expectedOutput = getSharedStructures().cleanStrings
+
+	CleanStrings(stripedStrs)
+	// Passed, check clean function
+	for index, correct_str := range expectedOutput {
+		if correct_str != stripedStrs[index].New_str {
+			fmt.Printf("New Str %s.\n", stripedStrs[index].New_str)
+			t.Errorf("%s didn't match %s", stripedStrs[index].New_str, correct_str)
+		}
 	}
+
 }
