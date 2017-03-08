@@ -78,7 +78,15 @@ Vagrant.configure(2) do |config|
   config.vm.provision "shell", inline: <<-SHELL
     yum update
     curl http://fishshell.com/files/linux/RedHat_RHEL-5/fish.release:2.repo > /etc/yum.repos.d/shells:fish:release:2.repo
-    yum install -y go nginx fish vim
+
+    # install latest go
+    curl -LO https://storage.googleapis.com/golang/go1.8.linux-amd64.tar.gz
+    sha256sum go1.8.linux-amd64.tar.gz > go_install.sha256
+    sha256sum -c go_install.sha256
+    tar -C /usr/local -xvzf go1.8.linux-amd64.tar.gz
+    echo "export PATH=$PATH:/usr/local/go/bin" >> /etc/profile.d/path.sh
+
+    yum install -y nginx fish vim
     echo 'export GOPATH="$HOME/gopath"
 export PATH="$GOPATH/bin:$PATH"' >> /home/vagrant/.bashrc
 
