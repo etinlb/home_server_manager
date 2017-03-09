@@ -17,6 +17,8 @@ import (
 	"regexp"
 )
 
+type Adapter func(http.Handler) http.Handler
+
 // sudo chmod  777 /mnt/data/
 // sudo chown  -R nobody:nobody /mnt/data/
 type Message struct {
@@ -41,9 +43,13 @@ func set_globals() {
 	media_folder = "/mnt/data/"
 }
 
-func register_routes() {
+func register_routes() *http.ServeMux {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/rename", renameHandler)
 	http.HandleFunc("/api/", messageHandler)
 
+	fmt.Printf("%s\n", os.Args[0])
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
@@ -53,18 +59,33 @@ func register_routes() {
 	fs := http.Dir(dir + "/static")
 	fileHandler := http.FileServer(fs)
 	http.Handle("/", fileHandler)
+
+	return mux
 }
 
-func start() {
+func start(mux *http.ServeMux) {
 	fmt.Println("Staring on " + port)
-	panic(http.ListenAndServe(":17901", nil))
+	panic(http.ListenAndServe(":17901", mux))
 }
 
 func main() {
 	set_globals()
-	register_routes()
+	mux := register_routes()
 	fixPermissions()
-	start()
+	start(mux)
+}
+
+func renameMessageAdapter() Adapter {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// l.Println(r.Method, r.URL.Path)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func renameHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("in renmae route")
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
