@@ -4,17 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/etinlb/strutils"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-	// "log"
-	"github.com/etinlb/strutils"
-	"regexp"
 )
 
 type Adapter func(http.Handler) http.Handler
@@ -35,36 +33,16 @@ type renameMessage struct {
 	Dir string
 }
 
-var port string
-var media_folder string
+var PORT string
+var MEDIA_FOLDER string
 
 func set_globals() {
-	port = ":17901"
-	media_folder = "/mnt/data/"
-}
-
-func register_routes() *http.ServeMux {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/api/rename", renameHandler)
-	http.HandleFunc("/api/", messageHandler)
-
-	fmt.Printf("%s\n", os.Args[0])
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(dir)
-	fs := http.Dir(dir + "/static")
-	fileHandler := http.FileServer(fs)
-	http.Handle("/", fileHandler)
-
-	return mux
+	PORT = ":17901"
+	MEDIA_FOLDER = "/mnt/data/"
 }
 
 func start(mux *http.ServeMux) {
-	fmt.Println("Staring on " + port)
+	fmt.Println("Staring on " + PORT)
 	panic(http.ListenAndServe(":17901", mux))
 }
 
@@ -82,10 +60,6 @@ func renameMessageAdapter() Adapter {
 			h.ServeHTTP(w, r)
 		})
 	}
-}
-
-func renameHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in renmae route")
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
