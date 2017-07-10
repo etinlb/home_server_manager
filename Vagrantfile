@@ -90,6 +90,8 @@ Vagrant.configure(2) do |config|
     echo 'export GOPATH="$HOME/gopath"
 export PATH="$GOPATH/bin:$PATH"' >> /home/vagrant/.bashrc
 
+    echo 'syntax on ' >> /home/vagrant/.vimrc'
+
     mkdir /home/vagrant/gopath
     mkdir -p /home/vagrant/gopath/src/github.com/etinlb/
     ln -s /vagrant/strutils/ /home/vagrant/gopath/src/github.com/etinlb/strutils
