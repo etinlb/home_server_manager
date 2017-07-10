@@ -47,9 +47,9 @@ func register_routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/rename", renameHandler)
-	http.HandleFunc("/api/", messageHandler)
+	mux.HandleFunc("/api/", messageHandler)
 
-	fmt.Printf("%s\n", os.Args[0])
+	fmt.Printf("Running From dir %s\n", os.Args[0])
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
@@ -58,7 +58,8 @@ func register_routes() *http.ServeMux {
 	fmt.Println(dir)
 	fs := http.Dir(dir + "/static")
 	fileHandler := http.FileServer(fs)
-	http.Handle("/", fileHandler)
+	// http.Handle("/", fileHandler)
+	mux.Handle("/", fileHandler)
 
 	return mux
 }
