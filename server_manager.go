@@ -102,7 +102,7 @@ func renameMessageAdapter() Adapter {
 }
 
 func renameHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in renmae route")
+	fmt.Println("in rename route")
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
