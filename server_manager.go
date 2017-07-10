@@ -19,8 +19,6 @@ import (
 
 type Adapter func(http.Handler) http.Handler
 
-// sudo chmod  777 /mnt/data/
-// sudo chown  -R nobody:nobody /mnt/data/
 type Message struct {
 	Action string
 	Args   json.RawMessage
@@ -37,10 +35,12 @@ type renameMessage struct {
 
 var port string
 var media_folder string
+var plex_folders []string
 
 func set_globals() {
 	port = ":17901"
 	media_folder = "/mnt/data/"
+	plex_folders = append(plex_folders, media_folder+"/Movies", media_folder+"/TV Shows")
 }
 
 func register_routes() *http.ServeMux {
@@ -88,7 +88,7 @@ func main() {
 	mountMedia()
 	set_globals()
 	mux := register_routes()
-	fixPermissions()
+	setPermissionOnPlexMedia()
 	start(mux)
 }
 
@@ -132,21 +132,32 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(response_message)
 }
 
-// Does a very simple permissions fix by setting the group to
-// nobody and all the files to open.
-func fixPermissions() ([]byte, error) {
-	fmt.Printf("Fixing Permissiosn")
-	data_location := "/mnt/data/"
+func setPermissionOnPlexMedia() {
+	for _, plexLibary := range plex_folders {
+		if err := filepath.Walk(plexLibary, fixPermissions); err != nil {
+			log.Printf("Error in fixPlexPermissions %q", err.Error())
+		}
+	}
+}
 
-	permissions_cmd := exec.Command("chown", "-R", "nobody:nobody", data_location)
-	user_cmd := exec.Command("chmod", "-R", "777", data_location)
-	// user_cmd := exec.Command("ls", "/")
-	// user_cmd.Dir = "/"
+// Sets the permission on a file to a plex friendly setting.
+// Read and execute permissions for everyone if it's a directory,
+// Read permissions for everyone if it's just a file
+func fixPermissions(path string, info os.FileInfo, err error) error {
+	var filemode os.FileMode
 
-	runCommand(permissions_cmd)
-	runCommand(user_cmd)
+	if err != nil {
+		log.Printf("Error in fixPermissions %q", err.Error())
+		return err
+	}
 
-	return nil, nil
+	if info.IsDir() {
+		filemode = 0755
+	} else {
+		filemode = 0644
+	}
+
+	return os.Chmod(path, filemode)
 }
 
 func runCommand(cmd *exec.Cmd) error {
@@ -178,7 +189,7 @@ func doMessage(message Message) ([]byte, error) {
 		}()
 		break
 	case "fix_all_permissions":
-		fixPermissions()
+		setPermissionOnPlexMedia()
 		break
 	case "test_rename":
 		dir := getDirFromRenameMessage(message)
