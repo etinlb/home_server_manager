@@ -69,7 +69,23 @@ func start(mux *http.ServeMux) {
 	panic(http.ListenAndServe(":17901", mux))
 }
 
+func mountMedia() error {
+	mount_all := exec.Command("mount", "-a")
+	if err := runCommand(mount_all); err != nil {
+		log.Printf("Error in mounting %q", err.Error())
+		return err
+	}
+	return nil
+}
+
 func main() {
+	// hack for now
+	log.Println("Starting")
+
+	time.Sleep(10000 * time.Millisecond)
+	log.Println("Mounting")
+
+	mountMedia()
 	set_globals()
 	mux := register_routes()
 	fixPermissions()
