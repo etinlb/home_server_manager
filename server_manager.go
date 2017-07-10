@@ -132,7 +132,7 @@ func fixPermissions() ([]byte, error) {
 	return nil, nil
 }
 
-func runCommand(cmd *exec.Cmd) {
+func runCommand(cmd *exec.Cmd) error {
 	var out_stream bytes.Buffer
 	var err_stream bytes.Buffer
 	cmd.Stdout = &out_stream
@@ -140,11 +140,12 @@ func runCommand(cmd *exec.Cmd) {
 
 	err := cmd.Run()
 	if err != nil {
+		fmt.Printf("%q\n", err_stream.String())
 		fmt.Printf("%q\n", err.Error())
+		return err
 	}
-
-	fmt.Printf("%q\n", out_stream.String())
-	fmt.Printf("%q\n", err_stream.String())
+	fmt.Printf("STD out of %q: %q\n", cmd.Args, out_stream.String())
+	return nil
 }
 
 func doMessage(message Message) ([]byte, error) {
