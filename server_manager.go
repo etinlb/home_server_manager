@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/etinlb/strutils"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-	// "log"
-	"github.com/etinlb/strutils"
-	"regexp"
 )
 
 type Adapter func(http.Handler) http.Handler
@@ -33,39 +32,18 @@ type renameMessage struct {
 	Dir string
 }
 
-var port string
-var media_folder string
-var plex_folders []string
+var PLEX_MEDIA_FOLDERS []string
+var PORT string
+var MEDIA_FOLDER string
 
 func set_globals() {
-	port = ":17901"
-	media_folder = "/mnt/data/"
-	plex_folders = append(plex_folders, media_folder+"/Movies", media_folder+"/TV Shows")
-}
-
-func register_routes() *http.ServeMux {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/api/rename", renameHandler)
-	mux.HandleFunc("/api/", messageHandler)
-
-	fmt.Printf("Running From dir %s\n", os.Args[0])
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(dir)
-	fs := http.Dir(dir + "/static")
-	fileHandler := http.FileServer(fs)
-	// http.Handle("/", fileHandler)
-	mux.Handle("/", fileHandler)
-
-	return mux
+	PORT = ":17901"
+	MEDIA_FOLDER = "/mnt/data/"
+	PLEX_MEDIA_FOLDERS = append(PLEX_MEDIA_FOLDERS, MEDIA_FOLDER+"/Movies", MEDIA_FOLDER+"/TV Shows")
 }
 
 func start(mux *http.ServeMux) {
-	fmt.Println("Staring on " + port)
+	fmt.Println("Staring on " + PORT)
 	panic(http.ListenAndServe(":17901", mux))
 }
 
@@ -92,6 +70,9 @@ func main() {
 	start(mux)
 }
 
+// TODO: I think what I should do is have a do message adaptor that will call the
+// do message with the correct arguments. I don't know why I wanted it to be an
+// adapter though.
 func renameMessageAdapter() Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,39 +82,8 @@ func renameMessageAdapter() Adapter {
 	}
 }
 
-func renameHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in rename route")
-}
-
-func messageHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	fmt.Printf("%v\n", r.Header)
-
-	fmt.Printf("%v\n", r.Body)
-
-	var request_message Message
-	err := decoder.Decode(&request_message)
-	fmt.Printf("%v\n", request_message)
-
-	if err != nil {
-		panic("AHAHAHAHHAAH" + err.Error())
-	}
-
-	fmt.Println("Server file ")
-	fmt.Println(r.RequestURI)
-
-	response_message, err := doMessage(request_message)
-
-	if err != nil {
-		panic("AHAHAHAHHAAH")
-	}
-
-	// send response
-	w.Write(response_message)
-}
-
 func setPermissionOnPlexMedia() {
-	for _, plexLibary := range plex_folders {
+	for _, plexLibary := range PLEX_MEDIA_FOLDERS {
 		if err := filepath.Walk(plexLibary, fixPermissions); err != nil {
 			log.Printf("Error in fixPlexPermissions %q", err.Error())
 		}
@@ -174,47 +124,6 @@ func runCommand(cmd *exec.Cmd) error {
 	}
 	fmt.Printf("STD out of %q: %q\n", cmd.Args, out_stream.String())
 	return nil
-}
-
-func doMessage(message Message) ([]byte, error) {
-	response := &Message{}
-	response.Action = "resp"
-
-	switch message.Action {
-	case "turn_off":
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			cmd := exec.Command("shutdown", "-h", "now")
-			runCommand(cmd)
-		}()
-		break
-	case "fix_all_permissions":
-		setPermissionOnPlexMedia()
-		break
-	case "test_rename":
-		dir := getDirFromRenameMessage(message)
-		replacementMap := getReplaceMentMap(dir)
-		response.Args, _ = json.Marshal(&replacementMap)
-		break
-	case "rename":
-		dir := getDirFromRenameMessage(message)
-		renameTorrentDir(dir)
-		subDirs, files := getDirContents(dir)
-		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
-		response.Args, _ = json.Marshal(&dirList)
-		break
-	case "list_dir":
-		dir := getDirFromRenameMessage(message)
-		subDirs, files := getDirContents(dir)
-		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
-		response.Args, _ = json.Marshal(&dirList)
-		break
-	}
-
-	sent_message, _ := json.Marshal(&response)
-
-	// fmt.Printf("Responding with  %+v\n", response)
-	return sent_message, nil
 }
 
 func getDirContents(dir string) ([]string, []string) {
