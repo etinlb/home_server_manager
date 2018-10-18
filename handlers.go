@@ -3,19 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/notbaab/plexdibella"
 	"net/http"
 	"os/exec"
 	"time"
 )
-
-// func renameHandler(w http.ResponseWriter, r *http.Request) {
-// 	// dir := getDirFromRenameMessage(message)
-
-// 	fmt.Println("in renmae route")
-
-// 	// send response
-// 	w.Write(response_message)
-// }
 
 func turnOffHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
@@ -24,11 +16,6 @@ func turnOffHandler(w http.ResponseWriter, r *http.Request) {
 		runCommand(cmd)
 	}()
 }
-
-// func fixPermissionsHandler(w http.ResponseWriter, r *http.Request) {
-// 	response := &Message{}
-// 	setPermissionOnPlexMedia()
-// }
 
 func listDirectoryHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -73,26 +60,20 @@ func doMessage(message Message) ([]byte, error) {
 			runCommand(cmd)
 		}()
 		break
-	case "fix_all_permissions":
-		setPermissionOnPlexMedia()
-		break
-	case "test_rename":
-		dir := getDirFromRenameMessage(message)
-		replacementMap := getReplaceMentMap(dir)
-		response.Args, _ = json.Marshal(&replacementMap)
-		break
-	case "rename":
-		dir := getDirFromRenameMessage(message)
-		renameTorrentDir(dir)
-		subDirs, files := getDirContents(dir)
-		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
-		response.Args, _ = json.Marshal(&dirList)
-		break
 	case "list_dir":
 		dir := getDirFromRenameMessage(message)
 		subDirs, files := getDirContents(dir)
 		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
 		response.Args, _ = json.Marshal(&dirList)
+		break
+	case "fix-names":
+		renameMap, err := plexdibella.GetAllCleanNames(nil)
+
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println(renameMap)
+		}
+
 		break
 	}
 
