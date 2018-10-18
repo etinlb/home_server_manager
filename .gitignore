@@ -4,3 +4,4 @@ debug
 test_data/*
 .vagrant/*
 .vscode/*
+*.sublime-workspace
