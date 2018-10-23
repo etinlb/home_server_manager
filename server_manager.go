@@ -22,6 +22,10 @@ type DirectoryContentsMessage struct {
 	Dirs  []string `json:"dirs"`
 }
 
+type PlexMessage struct {
+	URL   string `json:"url"`
+	Token string `json:"token"`
+}
 type renameMessage struct {
 	Dir string
 }
@@ -36,6 +40,7 @@ func set_globals() {
 
 func start(mux http.Handler) {
 	fmt.Println("Staring on " + PORT)
+	// http.li
 	panic(http.ListenAndServe(":17901", mux))
 }
 
@@ -124,6 +129,18 @@ func makeRenameMessage(message Message) renameMessage {
 	}
 
 	return renameMessage
+}
+
+func makePlexMessage(message Message) PlexMessage {
+	var plexMessage PlexMessage
+
+	err := json.Unmarshal(message.Args, &plexMessage)
+	if err != nil {
+		fmt.Printf("Something went wrong %+v\n", message)
+		fmt.Printf("Args %+s\n", message.Args)
+	}
+
+	return plexMessage
 }
 
 func getReplaceMentMap() {

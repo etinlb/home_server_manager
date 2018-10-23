@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/notbaab/plexdibella"
+	"log"
 	"net/http"
 	"os/exec"
 	"time"
+
 	"github.com/gorilla/websocket"
+	"github.com/jrudio/go-plex-client"
+	"github.com/notbaab/plexdibella"
 )
 
 var upgrader = websocket.Upgrader{
@@ -77,27 +80,32 @@ func doMessage(message Message) ([]byte, error) {
 	response.Action = "resp"
 
 	switch message.Action {
-	case "turn_off":
+	case "turn-off":
 		go func() {
 			time.Sleep(100 * time.Millisecond)
 			cmd := exec.Command("shutdown", "-h", "now")
 			runCommand(cmd)
 		}()
 		break
-	case "list_dir":
+	case "list-dir":
 		dir := getDirFromRenameMessage(message)
 		subDirs, files := getDirContents(dir)
 		dirList := DirectoryContentsMessage{Files: files, Dirs: subDirs}
 		response.Args, _ = json.Marshal(&dirList)
 		break
+	case "set-plex-data":
+		break
 	case "fix-names":
-		renameMap, err := plexdibella.GetAllCleanNames(nil)
+		plexMessage := makePlexMessage(message)
+		p, err := plex.New(plexMessage.URL, plexMessage.URL)
+
+		renameMap, err := plexdibella.GetAllCleanNames(p)
 
 		if err != nil {
 			fmt.Println(err)
-			fmt.Println(renameMap)
 		}
 
+		fmt.Println(renameMap)
 		break
 	}
 
