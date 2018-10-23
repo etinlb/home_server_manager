@@ -5,3 +5,5 @@ test_data/*
 .vagrant/*
 .vscode/*
 *.sublime-workspace
+node_module*
+dist/*
