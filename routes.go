@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -8,20 +9,21 @@ import (
 )
 
 // Return a http.ServeMux with all the routes bound to it
-func register_routes() *http.ServeMux {
-	mux := http.NewServeMux()
+func register_routes() *mux.Router {
+	// r := mux
+	r := mux.NewRouter()
 
-	// TODO: Ok, So I think I was trying to do all the routing directly here. Then,
-	// adapt the messages so they get called with the specific arguments
-	// Not really an adaptor patern though, I think this is kind of a dump idea
-	// mux.HandleFunc("/api/rename", renameHandler)
-	mux.HandleFunc("/api/", messageHandler)
+	api := r.PathPrefix("/api").Subrouter()
+	api.HandleFunc("/", messageHandler)
 
-	staticFileHandler := getHTTPFileHandler("static")
-	mux.Handle("/static", staticFileHandler)
-	// registerFileHandlerRoute("static", "/", mux)
+	// TODO: The static router should be done in nginx I think
+	staticFileHandler := getHTTPFileHandler("dist/")
+	r.PathPrefix("/static/").Handler(staticFileHandler)
 
-	return mux
+	// Server up the index and favicon.ico
+	r.Handle("/", staticFileHandler)
+
+	return r
 }
 
 // Registers the directory string as a generic file handler. Checks if the
@@ -38,5 +40,4 @@ func getHTTPFileHandler(directory string) http.Handler {
 	fs := http.Dir(dir + "/" + directory)
 	fileHandler := http.FileServer(fs)
 	return fileHandler
-	// mux.Handle(pattern, fileHandler)
 }

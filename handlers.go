@@ -7,7 +7,13 @@ import (
 	"net/http"
 	"os/exec"
 	"time"
+	"github.com/gorilla/websocket"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func turnOffHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
@@ -22,30 +28,48 @@ func listDirectoryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	fmt.Printf("%v\n", r.Header)
 
-	fmt.Printf("%v\n", r.Body)
-
-	var request_message Message
-	err := decoder.Decode(&request_message)
-	fmt.Printf("%v\n", request_message)
-
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		panic("AHAHAHAHHAAH" + err.Error())
+		log.Println(err)
+		return
+	}
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if err := conn.WriteMessage(messageType, p); err != nil {
+			log.Println(err)
+			return
+		}
 	}
 
-	fmt.Println("Server file ")
-	fmt.Println(r.RequestURI)
+	// decoder := json.NewDecoder(r.Body)
+	// fmt.Printf("%v\n", r.Header)
 
-	response_message, err := doMessage(request_message)
+	// fmt.Printf("%v\n", r.Body)
 
-	if err != nil {
-		panic("AHAHAHAHHAAH")
-	}
+	// var request_message Message
+	// err := decoder.Decode(&request_message)
+	// fmt.Printf("%v\n", request_message)
 
-	// send response
-	w.Write(response_message)
+	// if err != nil {
+	// 	panic("AHAHAHAHHAAH" + err.Error())
+	// }
+
+	// fmt.Println("Server file ")
+	// fmt.Println(r.RequestURI)
+
+	// response_message, err := doMessage(request_message)
+
+	// if err != nil {
+	// 	panic("AHAHAHAHHAAH")
+	// }
+
+	// // send response
+	// w.Write(response_message)
 }
 
 func doMessage(message Message) ([]byte, error) {

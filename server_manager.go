@@ -34,7 +34,7 @@ func set_globals() {
 	MEDIA_FOLDER = "/mnt/data/"
 }
 
-func start(mux *http.ServeMux) {
+func start(mux http.Handler) {
 	fmt.Println("Staring on " + PORT)
 	panic(http.ListenAndServe(":17901", mux))
 }
