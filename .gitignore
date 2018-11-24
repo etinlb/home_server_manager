@@ -7,3 +7,4 @@ test_data/*
 *.sublime-workspace
 node_module*
 dist/*
+\.DS_Store
