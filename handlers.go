@@ -30,6 +30,24 @@ func listDirectoryHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func messageResponder(conn *websocket.Conn, uuid string) chan json.RawMessage {
+	var messageChannel = make(chan json.RawMessage)
+
+	go func() {
+		// read from the byte channel and broadcast a message with the uuid
+		// to anything listening
+		data, more := <-messageChannel
+		if !more {
+			return
+		}
+
+		resp := ResponseMessage{UUID: uuid, Data: data}
+		conn.WriteJSON(resp)
+	}()
+
+	return messageChannel
+}
+
 func messageHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -38,44 +56,38 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for {
-		messageType, p, err := conn.ReadMessage()
+		var message Message
+		err := conn.ReadJSON(&message)
 		if err != nil {
+			log.Println("Error, exiting websocket loop")
 			log.Println(err)
 			return
 		}
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
+
+		doAction(message, conn)
 	}
-
-	// decoder := json.NewDecoder(r.Body)
-	// fmt.Printf("%v\n", r.Header)
-
-	// fmt.Printf("%v\n", r.Body)
-
-	// var request_message Message
-	// err := decoder.Decode(&request_message)
-	// fmt.Printf("%v\n", request_message)
-
-	// if err != nil {
-	// 	panic("AHAHAHAHHAAH" + err.Error())
-	// }
-
-	// fmt.Println("Server file ")
-	// fmt.Println(r.RequestURI)
-
-	// response_message, err := doMessage(request_message)
-
-	// if err != nil {
-	// 	panic("AHAHAHAHHAAH")
-	// }
-
-	// // send response
-	// w.Write(response_message)
 }
 
-func doMessage(message Message) ([]byte, error) {
+func runPlexCleanup(messageChan chan json.RawMessage) {
+	defer close(messageChan)
+
+	info := Info{Msg: "starting"}
+	data, err := json.Marshal(&info)
+	messageChan <- data
+
+	// plexMessage := makePlexMessage(message)
+	p, err := plex.New("http://data", "blah")
+
+	renameMap, err := plexdibella.GetAllCleanNames(p)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(renameMap)
+}
+
+func doAction(message Message, conn *websocket.Conn) error {
 	response := &Message{}
 	response.Action = "resp"
 
@@ -95,22 +107,11 @@ func doMessage(message Message) ([]byte, error) {
 		break
 	case "set-plex-data":
 		break
-	case "fix-names":
-		plexMessage := makePlexMessage(message)
-		p, err := plex.New(plexMessage.URL, plexMessage.URL)
-
-		renameMap, err := plexdibella.GetAllCleanNames(p)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println(renameMap)
+	case "cleanup":
+		messageChan := messageResponder(conn, message.Id)
+		go runPlexCleanup(messageChan)
 		break
 	}
 
-	sent_message, _ := json.Marshal(&response)
-
-	// fmt.Printf("Responding with  %+v\n", response)
-	return sent_message, nil
+	return nil
 }

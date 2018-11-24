@@ -13,8 +13,18 @@ import (
 type Adapter func(http.Handler) http.Handler
 
 type Message struct {
+	Id     string
 	Action string
 	Args   json.RawMessage
+}
+
+type Info struct {
+	Msg string
+}
+
+type ResponseMessage struct {
+	UUID string
+	Data json.RawMessage
 }
 
 type DirectoryContentsMessage struct {
