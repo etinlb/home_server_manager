@@ -1,8 +1,9 @@
-import _ from 'lodash'
+// import _ from 'lodash'
 
 class API {
   constructor (path) {
     let that = this
+    this.callbackIdMap = {};
 
     this.connected = new Promise((resolve, reject) => {
       that.sock = new WebSocket(API.qualifyWebsocketURL(path))
@@ -13,21 +14,26 @@ class API {
         reject(new Error('Oh no!'))
       }
     })
-    this.notify_map = {}
     this.sock.onmessage = function (e) {
-      console.log(e)
+      let msg = JSON.parse(e.data);
+      console.log(msg)
     }
 
     this.sock.onclose = function (e) {
       console.log(e)
     }
+
+    // Thanks stack overflow
+    // https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript
+    this.getUUID = function() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      )
+    }
   }
 
-  _notify (name, obj) {
-    var cbs = this._subscribers[name]
-    for (var ii = 0; ii < cbs.length; ii++) {
-      cbs[ii](obj)
-    }
+  sendMessage(msg) {
+    this.sock.send(msg);
   }
 
   onOpen (callback) {
@@ -38,8 +44,20 @@ class API {
     console.log(callback)
   }
 
-  onAbnormalModeTermination (callback) {
-    this._subscribers.abnormalModeTermination.push(callback)
+  startCleanup(callback) {
+    let callbackId = this.getUUID();
+    let msg = this.createMessage(callbackId, "cleanup", {});
+    this.callbackIdMap[callbackId] = callback;
+
+    this.sock.send(msg);
+  }
+
+  createMessage(callbackId, action, parameters) {
+    return JSON.stringify({
+      "id" : callbackId,
+      "action": action,
+      "parameters": parameters,
+    });
   }
 
   static qualifyWebsocketURL (path) {
