@@ -16,6 +16,8 @@ func register_routes() *mux.Router {
 	wapi := r.PathPrefix("/wapi").Subrouter()
 	wapi.HandleFunc("/", websocketApiHandler)
 
+	rapi := r.PathPrefix("/rapi").Subrouter()
+	rapi.HandleFunc("/plex-login", insertPlexLoginData).Methods("POST")
 	// TODO: The static router should be done in nginx I think
 	staticFileHandler := getHTTPFileHandler("dist/")
 	r.PathPrefix("/static/").Handler(staticFileHandler)

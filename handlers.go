@@ -49,6 +49,37 @@ func messageResponder(conn *websocket.Conn, uuid string) chan json.RawMessage {
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
+}
+
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+func insertPlexLoginData(w http.ResponseWriter, r *http.Request) {
+	var p PlexMessage
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	if err := decoder.Decode(&p); err != nil {
+		log.Println(err)
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := insertPlexData(DB, p.URL, p.Token); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	fmt.Printf("request %+v\n", p)
+
+	respondWithJSON(w, http.StatusCreated, SimpleMessage{"Success"})
+}
+
 func websocketApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
