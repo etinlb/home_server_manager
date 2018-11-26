@@ -14,10 +14,12 @@ type Adapter func(http.Handler) http.Handler
 
 var PORT string
 var MEDIA_FOLDER string
+var DB string
 
 func set_globals() {
 	PORT = ":17901"
 	MEDIA_FOLDER = "/mnt/data/"
+	DB = "data.db"
 }
 
 func start(mux http.Handler) {
@@ -39,6 +41,10 @@ func mountMedia() error {
 func main() {
 	log.Println("Starting")
 	set_globals()
+	err := initDatabase(DB)
+	if err != nil {
+		log.Printf("Error Initializing database %s\n", err.Error())
+	}
 
 	mux := register_routes()
 	start(mux)
