@@ -8,3 +8,5 @@ test_data/*
 node_module*
 dist/*
 \.DS_Store
+
+*.db
