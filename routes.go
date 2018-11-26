@@ -13,8 +13,8 @@ func register_routes() *mux.Router {
 	// r := mux
 	r := mux.NewRouter()
 
-	api := r.PathPrefix("/api").Subrouter()
-	api.HandleFunc("/", messageHandler)
+	wapi := r.PathPrefix("/wapi").Subrouter()
+	wapi.HandleFunc("/", websocketApiHandler)
 
 	// TODO: The static router should be done in nginx I think
 	staticFileHandler := getHTTPFileHandler("dist/")

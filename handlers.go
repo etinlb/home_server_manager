@@ -48,7 +48,8 @@ func messageResponder(conn *websocket.Conn, uuid string) chan json.RawMessage {
 	return messageChannel
 }
 
-func messageHandler(w http.ResponseWriter, r *http.Request) {
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+func websocketApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
